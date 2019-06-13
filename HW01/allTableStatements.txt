@@ -1,0 +1,177 @@
+Create Table Department (DCode varchar(3) primary key, Building varchar(20), Room integer);
+
+copy Department(DCode, Building, Room) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/departmentsWin.txt' with null '*' delimiter '|';
+
+create Table Faculty (Fid serial primary key, Fname varchar(40), Dcode varchar(3), Foreign Key (Dcode) references Department(Dcode));
+
+copy Faculty(Fid, Fname, DCode) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/facultyWin.txt' with null '*' delimiter '|';
+
+create Table Course (Cnum varchar(6), Cname varchar(30), Semester varchar(6), Year integer, Credits integer, Fid integer, Primary Key(Cnum, Semester, Year), Foreign key (fid) References Faculty(Fid), constraint chkSemester Check(Semester = 'Spring' OR Semester = 'Fall' OR Semester = 'Summer'), constraint chkYear Check(Year > 1899 AND Year < 2100));
+
+copy Course(Cnum, Cname, Semester, Year, Credits, Fid) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/coursesWin.txt' with null '*' delimiter '|';
+
+Create table Major (Mid serial primary key, Mname varchar(10), Dcode varchar(3), Foreign Key (Dcode) references Department(Dcode));
+
+copy Major(Mid, Mname, DCode) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/majorsWin.txt' with null '*' delimiter '|';
+
+Create table Student (Sid serial primary key, Sname varchar(40), Mid integer, Fid integer, Foreign Key (Mid) References Major(Mid), Foreign Key (Fid) References Faculty(Fid)); 
+
+copy Student(Sid, Sname, Mid, Fid) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/studentsWin.txt' with null '*' delimiter '|';
+
+create table Enroll(Grade varchar(2), Cnum varchar(6), Semester varchar(6), Year integer, Sid integer, Foreign Key (Cnum, Semester, Year) References Course(Cnum, Semester, Year), constraint chkGrade Check(Grade = 'A' OR Grade = 'AB' OR Grade ='B' OR Grade = 'BC' OR Grade = 'C' OR Grade = 'D' OR Grade = 'F' OR Grade = 'I'));
+
+copy Enroll(Cnum, Semester, Year, Sid, Grade) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/enrollWin.txt' with null '*' delimiter '|';
+
+create or replace function changeMajor(studId integer, majId integer, facId integer) returns void as $$
+DECLARE
+	majorsOfferedByDept integer;
+	oldFacId integer;
+BEGIN
+	if studId is null then 
+		return;
+	elsif majId is null then 
+		return;
+	end if;
+	if facId IS NULL then
+		SELECT fid into oldFacId FROM Student Where Sid = studId;
+		for majorsOfferedByDept in Select mid FROM Major
+		Where Major.Dcode = (Select DCode FROM Faculty Where Faculty.fid = oldFacId) LOOP
+			If majorsOfferedByDept = majId then
+				UPDATE Student Set mid = majId WHERE sid = studId;
+				raise notice 'updated student mid # %', majId;
+			else 
+				raise notice 'current faculty does not offer this major';
+			end if;
+		end loop;
+	else
+	for majorsOfferedByDept in Select mid FROM Major
+	Where Major.Dcode = (Select DCode FROM Faculty Where fid = facId) LOOP
+		If majorsOfferedByDept = majId then
+			UPDATE Student Set mid = majId, fid = facId WHERE sid = studId;
+			raise notice 'updated student mid # %', majId;
+		else
+			raise notice 'fac offers major %',majorsOfferedByDept;
+		end if;
+	end loop;
+	end if;
+END;
+$$ Language plpgsql;
+
+create or replace function checkFacultyCourses() returns trigger as $$
+Declare
+	facDcode varchar(3);
+
+Begin
+
+	Select Dcode into facDcode From Faculty Where fid = NEW.fid;
+	if NEW.Cnum LIKE (cast(facDcode as varchar(3)) || '%') then
+		raise notice 'updated faculty course';
+		return NEW;
+	else 
+		raise exception '% is not part of the faculty dept: %', NEW.Cnum, facDcode;
+		return null;
+	end if;
+	return NEW;
+End;
+$$ Language plpgsql;
+CREATE TRIGGER assignCourse
+    BEFORE INSERT OR UPDATE OF Fid
+    ON Course
+    FOR EACH ROW
+    EXECUTE PROCEDURE checkFacultyCourses();
+
+create or replace function checkAdvisor() returns trigger AS $$
+Declare 
+	depts_for_major varchar(3);
+	new_dept varchar(3);
+Begin
+	
+	select DCode into new_dept
+	From Faculty
+	Where Faculty.Fid = NEW.Fid;
+	
+
+	for depts_for_major in select DCode from Department Natural Join Major
+			where Major.DCode = new_dept And Major.Mid = NEW.Mid loop
+		if depts_for_major is NULL then
+			raise exception 'advisor and major do not match';
+			return null;
+		end if;
+		if depts_for_major = new_dept then 
+			raise notice 'updated advisor';	
+			return NEW;
+		end if;
+	end loop;
+	raise exception 'advisor and major do not match';
+	return null;
+End;
+$$ Language plpgsql;
+CREATE TRIGGER newAdvisor
+    BEFORE INSERT OR UPDATE OF Fid
+    ON Student
+    FOR EACH ROW
+    EXECUTE PROCEDURE checkAdvisor();
+
+CREATE OR REPLACE FUNCTION calcGpa(tid integer) RETURNS numeric(4,2) AS $$
+DECLARE
+	result record;
+	numCourses integer;
+	lastCourse varchar(6);
+	curCourse varchar(6);
+	gpa numeric(4,2);
+BEGIN
+	numCourses := 0;
+	gpa := 0;
+	For result in Select Grade, Cnum, Year, Semester From Enroll AS g Where Sid = tid Order By Grade, Cnum, Semester, Year ASC LOOP
+		if numCourses > 0 then
+			curCourse := result.Cnum;
+
+			Select Cnum Into lastCourse From Enroll Where Sid = tid
+			Order By Grade, Cnum, Semester, year ASC
+			Limit 1
+			Offset numCourses;
+
+			if curCourse = lastCourse then
+
+			else
+				if result.grade = 'A' then
+					gpa = gpa + 4.0;
+				elsif result.grade = 'AB' then 
+					gpa = gpa + 3.5;
+				elsif result.grade = 'B' then
+					gpa = gpa + 3.0;
+				elsif result.grade = 'BC' then
+					gpa = gpa + 2.5;
+				elsif result.grade = 'C' then 
+					gpa = gpa + 2.0;
+				elsif result.grade = 'D' then
+					gpa = gpa + 1.0;
+				else 
+					gpa = gpa + 0;
+				end if;
+				numCourses := numCourses + 1;	
+			end if;
+		else 
+			if result.grade = 'A' then
+				gpa = gpa + 4.0;
+			elsif result.grade = 'AB' then 
+				gpa = gpa + 3.5;
+			elsif result.grade = 'B' then
+				gpa = gpa + 3.0;
+			elsif result.grade = 'BC' then
+				gpa = gpa + 2.5;
+			elsif result.grade = 'C' then 
+				gpa = gpa + 2.0;
+			elsif result.grade = 'D' then
+				gpa = gpa + 1.0;
+			else 
+				gpa = gpa + 0;
+			end if;
+		numCourses := numCourses + 1;
+		end if;
+			
+	end loop;
+	gpa := gpa / numCourses;
+	return gpa;
+END;
+$$ Language plpgsql;

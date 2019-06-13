@@ -1,0 +1,63 @@
+CREATE OR REPLACE FUNCTION calcGpa(tid integer) RETURNS numeric(4,2) AS $$
+DECLARE
+	result record;
+	numCourses integer;
+	lastCourse varchar(6);
+	curCourse varchar(6);
+	gpa numeric(4,2);
+BEGIN
+	numCourses := 0;
+	gpa := 0;
+	For result in Select Grade, Cnum, Year, Semester From Enroll AS g Where Sid = tid Order By Grade, Cnum, Semester, Year ASC LOOP
+		if numCourses > 0 then
+			curCourse := result.Cnum;
+
+			Select Cnum Into lastCourse From Enroll Where Sid = tid
+			Order By Grade, Cnum, Semester, year ASC
+			Limit 1
+			Offset numCourses;
+
+			if curCourse = lastCourse then
+
+			else
+				if result.grade = 'A' then
+					gpa = gpa + 4.0;
+				elsif result.grade = 'AB' then 
+					gpa = gpa + 3.5;
+				elsif result.grade = 'B' then
+					gpa = gpa + 3.0;
+				elsif result.grade = 'BC' then
+					gpa = gpa + 2.5;
+				elsif result.grade = 'C' then 
+					gpa = gpa + 2.0;
+				elsif result.grade = 'D' then
+					gpa = gpa + 1.0;
+				else 
+					gpa = gpa + 0;
+				end if;
+				numCourses := numCourses + 1;	
+			end if;
+		else 
+			if result.grade = 'A' then
+				gpa = gpa + 4.0;
+			elsif result.grade = 'AB' then 
+				gpa = gpa + 3.5;
+			elsif result.grade = 'B' then
+				gpa = gpa + 3.0;
+			elsif result.grade = 'BC' then
+				gpa = gpa + 2.5;
+			elsif result.grade = 'C' then 
+				gpa = gpa + 2.0;
+			elsif result.grade = 'D' then
+				gpa = gpa + 1.0;
+			else 
+				gpa = gpa + 0;
+			end if;
+		numCourses := numCourses + 1;
+		end if;
+			
+	end loop;
+	gpa := gpa / numCourses;
+	return gpa;
+END;
+$$ Language plpgsql;

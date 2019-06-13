@@ -1,0 +1,31 @@
+create or replace function checkAdvisor() returns trigger AS $$
+Declare 
+	depts_for_major varchar(3);
+	new_dept varchar(3);
+Begin
+	
+	select DCode into new_dept
+	From Faculty
+	Where Faculty.Fid = NEW.Fid;
+	
+
+	for depts_for_major in select DCode from Department Natural Join Major
+			where Major.DCode = new_dept And Major.Mid = NEW.Mid loop
+		if depts_for_major is NULL then
+			raise exception 'advisor and major do not match';
+			return null;
+		end if;
+		if depts_for_major = new_dept then 
+			raise notice 'updated advisor';	
+			return NEW;
+		end if;
+	end loop;
+	raise exception 'advisor and major do not match';
+	return null;
+End;
+$$ Language plpgsql;
+CREATE TRIGGER newAdvisor
+    BEFORE INSERT OR UPDATE OF Fid
+    ON Student
+    FOR EACH ROW
+    EXECUTE PROCEDURE checkAdvisor();

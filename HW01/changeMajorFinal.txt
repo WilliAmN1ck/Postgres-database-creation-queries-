@@ -1,0 +1,34 @@
+create or replace function changeMajor(studId integer, majId integer, facId integer) returns void as $$
+DECLARE
+	majorsOfferedByDept integer;
+	oldFacId integer;
+BEGIN
+	if studId is null then 
+		return;
+	elsif majId is null then 
+		return;
+	end if;
+	if facId IS NULL then
+		SELECT fid into oldFacId FROM Student Where Sid = studId;
+		for majorsOfferedByDept in Select mid FROM Major
+		Where Major.Dcode = (Select DCode FROM Faculty Where Faculty.fid = oldFacId) LOOP
+			If majorsOfferedByDept = majId then
+				UPDATE Student Set mid = majId WHERE sid = studId;
+				raise notice 'updated student mid # %', majId;
+			else 
+				raise notice 'current faculty does not offer this major';
+			end if;
+		end loop;
+	else
+	for majorsOfferedByDept in Select mid FROM Major
+	Where Major.Dcode = (Select DCode FROM Faculty Where fid = facId) LOOP
+		If majorsOfferedByDept = majId then
+			UPDATE Student Set mid = majId, fid = facId WHERE sid = studId;
+			raise notice 'updated student mid # %', majId;
+		else
+			raise notice 'fac offers major %',majorsOfferedByDept;
+		end if;
+	end loop;
+	end if;
+END;
+$$ Language plpgsql;

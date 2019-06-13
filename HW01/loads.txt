@@ -1,0 +1,6 @@
+copy public."Student"(Sid, Sname, Mid, Fid) from 'Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/studentsWin.txt' with null '*' delimiter '|';
+copy public."Course"(Cnum, Cname, Semester, Year, Credits, Fid) from 'Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/coursesWin.txt' with null '*' delimiter '|';
+copy public."Department"(DCode, Building, Room) from 'Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/departmentsWin.txt' with null '*' delimiter '|';
+copy public."Enroll"(Cnum, Semester, Year, Sid, Grade) from 'Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/enrollWin.txt' with null '*' delimiter '|';
+copy public."Faculty"(Fid, Fname, DCode) from 'Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/facultyWin.txt' with null '*' delimiter '|';
+copy public."Major"(Mid, Mname, DCode) from 'Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/majorsWin.txt' with null '*' delimiter '|';

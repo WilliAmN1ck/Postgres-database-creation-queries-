@@ -1,0 +1,22 @@
+create or replace function checkFacultyCourses() returns trigger as $$
+Declare
+	facDcode varchar(3);
+
+Begin
+
+	Select Dcode into facDcode From Faculty Where fid = NEW.fid;
+	if NEW.Cnum LIKE (cast(facDcode as varchar(3)) || '%') then
+		raise notice 'updated faculty course';
+		return NEW;
+	else 
+		raise exception '% is not part of the faculty dept: %', NEW.Cnum, facDcode;
+		return null;
+	end if;
+	return NEW;
+End;
+$$ Language plpgsql;
+CREATE TRIGGER assignCourse
+    BEFORE INSERT OR UPDATE OF Fid
+    ON Course
+    FOR EACH ROW
+    EXECUTE PROCEDURE checkFacultyCourses();

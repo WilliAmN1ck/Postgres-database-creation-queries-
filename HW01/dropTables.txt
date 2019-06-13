@@ -1,0 +1,11 @@
+drop table Enroll;
+
+drop table Student;
+
+drop table Major;
+
+drop table Course;
+
+drop table Faculty;
+
+drop table Department;

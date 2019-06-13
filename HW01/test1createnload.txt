@@ -1,0 +1,23 @@
+Create Table Department (DCode varchar(3) primary key, Building varchar(20), Room integer);
+
+copy Department(DCode, Building, Room) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/departmentsWin.txt' with null '*' delimiter '|';
+
+create Table Faculty (Fid serial primary key, Fname varchar(40), Dcode varchar(3), Foreign Key (Dcode) references Department(Dcode));
+
+copy Faculty(Fid, Fname, DCode) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/facultyWin.txt' with null '*' delimiter '|';
+
+create Table Course (Cnum varchar(6), Cname varchar(30), Semester varchar(6), Year integer, Credits integer, Fid integer, Primary Key(Cnum, Semester, Year), Foreign key (fid) References Faculty(Fid), constraint chkSemester Check(Semester = 'Spring' OR Semester = 'Fall' OR Semester = 'Summer'), constraint chkYear Check(Year > 1899 AND Year < 2100));
+
+copy Course(Cnum, Cname, Semester, Year, Credits, Fid) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/coursesWin.txt' with null '*' delimiter '|';
+
+Create table Major (Mid serial primary key, Mname varchar(10), Dcode varchar(3), Foreign Key (Dcode) references Department(Dcode));
+
+copy Major(Mid, Mname, DCode) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/majorsWin.txt' with null '*' delimiter '|';
+
+Create table Student (Sid serial primary key, Sname varchar(40), Mid integer, Fid integer, Foreign Key (Mid) References Major(Mid), Foreign Key (Fid) References Faculty(Fid)); 
+
+copy Student(Sid, Sname, Mid, Fid) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/studentsWin.txt' with null '*' delimiter '|';
+
+create table Enroll(Grade varchar(2), Cnum varchar(6), Semester varchar(6), Year integer, Sid integer, Foreign Key (Cnum, Semester, Year) References Course(Cnum, Semester, Year), constraint chkGrade Check(Grade = 'A' OR Grade = 'AB' OR Grade ='B' OR Grade = 'BC' OR Grade = 'C' OR Grade = 'D' OR Grade = 'F' OR Grade = 'I'));
+
+copy Enroll(Cnum, Semester, Year, Sid, Grade) from '/Users/Willums/Documents/spring2019/cs464databases/HW01/h1Data/enrollWin.txt' with null '*' delimiter '|';

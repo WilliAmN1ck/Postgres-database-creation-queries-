@@ -1,0 +1,235 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf200
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 -- FUNCTION: public."calcGpa"(integer)\
+\
+-- DROP FUNCTION public."calcGpa"(integer);\
+\
+CREATE OR REPLACE FUNCTION public."calcGpa"(\
+	tid integer)\
+    RETURNS real\
+    LANGUAGE 'plpgsql'\
+\
+    COST 100\
+    VOLATILE \
+AS $BODY$DECLARE\
+	grades character varying;\
+	numCourses character varying;\
+	lastCourse character varying;\
+	curCourse character varying;\
+	gpa real;\
+BEGIN\
+	numCourses := 0;\
+	gpa := 0;\
+	For grades in Select Enroll.Grade From Enroll Where Enroll.Sid = tid Group By Enroll.Cnum, Enroll.Grade Order By Enroll.Grade DESC LOOP\
+		if numCourses > 0 then\
+			Select Enroll.Cnum into curCourse From Enroll Where Enroll.Sid = tid Group By Enroll.Cnum, Enroll.Grade\
+			Order By Enroll.Grade DESC\
+			Limit 1\
+			Offset numCourses;\
+\
+			Select Enroll.Cnum Into lastCourse From Enroll Where Enroll.Sid = tid Group By Enroll.Cnum, Enroll.Grade\
+			Order By Enroll.Grade DESC\
+			Limit 1\
+			Offset numCourses-1;\
+\
+			if curCourse = lastCourse then\
+				numCourses = numCourses-1;\
+			end if;\
+		end if;\
+		if grades = \'91A\'92 then\
+			gpa = gpa + 4.0;\
+		end if;\
+		if grades = \'91AB\'92 then\
+			gpa = gpa + 3.5;\
+		end if;\
+		if grades = \'91B\'92 then\
+			gpa = gpa + 3.0;\
+		end if;\
+		 if grades = \'91BC\'92 then\
+			gpa = gpa + 2.5;\
+		end if;\
+		if grades = \'91C\'92 then\
+			gpa = gpa + 2.0;\
+		end if;\
+		 if grades  = \'91D\'92 then\
+			gpa = gpa + 1.0;\
+		end if;\
+		if grades = 'F' then\
+			gpa = gpa + 0.0;\
+		end if;\
+		numCourses = numCourses + 1;\
+	end loop;\
+	gpa = gpa / numCourses;\
+	return gpa;\
+END;$BODY$;\
+\
+ALTER FUNCTION public."calcGpa"(integer)\
+    OWNER TO "Williams superuser";\
+\
+\
+\
+\
+\
+\
+\
+\
+~~~~~~~SHORTER VERSION OF NEW CODE~~~~~ TOOK OUT AND Grades IS NOT \'91I\'92\
+DECLARE\
+	grades character varying;\
+	numCourses character varying;\
+	lastCourse character varying;\
+	curCourse character varying;\
+	gpa real;\
+BEGIN\
+	numCourses := 0;\
+	gpa := 0;\
+	For grades in Select Enroll.Grade From Enroll Where Enroll.Sid = tid \
+	Group By Enroll.Cnum, Enroll.Grade\
+	Order By Enroll.Grade DESC LOOP\
+		if numCourses > 0 then\
+			Select Enroll.Cnum into curCourse From Enroll Where Enroll.Sid = tid Group By Enroll.Cnum, Enroll.Grade\
+			Order By Enroll.Grade DESC\
+			Limit 1\
+			Offset numCourses;\
+\
+			Select Enroll.Cnum Into lastCourse From Enroll Where Enroll.Sid = tid Group By Enroll.Cnum, Enroll.Grade\
+			Order By Enroll.Grade DESC\
+			Limit 1\
+			Offset numCourses-1;\
+\
+			if curCourse = lastCourse then\
+				numCourses = numCourses-1;\
+			end if;\
+		end if;\
+		if grades = \'91A\'92 then\
+			gpa = gpa + 4.0;\
+		else if grades = \'91AB\'92 then\
+			gpa = gpa + 3.5;\
+		else if grades = \'91B\'92 then\
+			gpa = gpa + 3.0;\
+		else if grades = \'91BC\'92 then\
+			gpa = gpa + 2.5;\
+		else if grades = \'91C\'92 then\
+			gpa = gpa + 2.0;\
+		else if grades  = \'91D\'92 then\
+			gpa = gpa + 1.0;\
+		else\
+			gpa = gpa + 0.0;\
+		end if;\
+		end if;\
+		end if;\
+		end if;\
+		end if; \
+		end if;\
+		end if;\
+		numCourses = numCourses + 1;\
+	end loop;\
+	gpa = gpa / numCourses;\
+	return gpa;\
+END;\
+\
+\
+~~~~OLDER CODE~~~~\
+DECLARE\
+	grades character varying;\
+	numCourses character varying;\
+	lastCourse character varying;\
+	curCourse character varying;\
+	gpa real;\
+BEGIN\
+	numCourses := 0;\
+	gpa := 0;\
+	For grades in Select Grade From Enroll Where Sid = tid AND Grade IS NOT \'91I\'92\
+	Group By Cnum, Grade\
+	Order By Grade DESC LOOP\
+		if numCourses > 0 then\
+			Select Cnum into curCourse From Enroll Where Sid = tid Group By Cnum, Grade\
+			Order By Grade DESC\
+			Limit 1\
+			Offset numCourses;\
+\
+			Select Cnum Into lastCourse From Enroll Where Sid = tid Group By Cnum, Grade\
+			Order By Grade DESC\
+			Limit 1\
+			Offset numCourses-1;\
+\
+			if curCourse = lastCourse then\
+				numCourses = numCourses-1;\
+			end if;\
+		end if;\
+		if grade = \'91A\'92 then\
+				gpa = gpa + 4.0;\
+			else if grade = \'91AB\'92 then\
+				gpa = gpa + 3.5;\
+			else if grade = \'91B\'92 then\
+				gpa = gpa + 3.0;\
+			else if grade = \'91BC\'92 then\
+				gpa = gpa + 2.5;\
+			else if grade = \'91C\'92 then\
+				gpa = gpa + 2.0;\
+			else if grade  = \'91D\'92 then\
+				gpa = gpa + 1.0;\
+			else\
+				gpa = gpa + 0.0;\
+			end if;\
+		numCourses = numCourses + 1;\
+	end LOOP;\
+	gpa = gpa / numCourses;\
+	return gpa;\
+End;\
+\
+create or replace function calcGpa(id integer) returns numeric(3,2) AS $$\
+DECLARE\
+	grades varchar(2);\
+	numCourses integer;\
+	lastCourse varchar(6);\
+	curCourse varchar(6)\
+	gpa numeric(3,2);\
+BEGIN\
+	numCourses :=0;\
+	For grades in Select Grade From Enroll Where Sid = id AND Grade IS NOT \'91I\'92\
+	Group By Cnum, Grade\
+	Order By Grade DESC LOOP\
+		if numCourses > 0 then\
+			Select Cnum into curCourse From Enroll Where Sid = id Group By Cnum, Grade\
+			Order By Grade DESC\
+			Limit 1\
+			Offest numCourses;\
+\
+			Select Cnum Into lastCourse From Enroll Where Sid = id Group By Cnum, Grade\
+			Order By Grade DESC\
+			Limit 1\
+			Offest numCourses-1;\
+\
+			if curCourse = lastCourse then\
+				numCourses = numCourses-1;\
+			else \
+				if grade = \'91A\'92 then\
+					gpa = gpa + 4.0;\
+				else if grade = \'91AB\'92 then\
+					gpa = gpa + 3.5;\
+				else if grade = \'91B\'92 then\
+					gpa = gpa + 3.0;\
+				else if grade = \'91BC\'92 then\
+					gpa = gpa + 2.5;\
+				else if grade = \'91C\'92 then\
+					gpa = gpa + 2.0;\
+				else if grade  = \'91D\'92 then\
+					gpa = gpa + 1.0;\
+				else //grade is \'91F\'92\
+					gpa = gpa + 0.0;\
+				end if;\
+			end if;\
+		end if;\
+		numCourses = numCourses + 1;\
+	end LOOP;\
+	gpa = gpa / numCourses;\
+	return gpa;\
+End;\
+$$ Language plpgsql;\
+}
